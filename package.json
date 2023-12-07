@@ -1,9 +1,9 @@
 {
-  "name": "justAntlr",
-  "publisher": "ChonLam",
-  "displayName": "justAntlr",
+  "name": "justAntlrPlus",
+  "publisher": "xuyanfeng",
+  "displayName": "justAntlrPlus",
   "description": "A simple tool for operating antlr",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.66.0"
   },
@@ -33,10 +33,6 @@
     "languages": [
       {
           "id": "justAntlr",
-          "aliases": [
-              "ANTLR",
-              "antlr"
-          ],
           "extensions": [
               ".g",
               ".g4"
