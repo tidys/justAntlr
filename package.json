@@ -3,7 +3,7 @@
   "publisher": "xuyanfeng",
   "displayName": "justAntlrPlus",
   "description": "A simple tool for operating antlr",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.66.0"
   },
@@ -21,26 +21,53 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "configuration":{
+    "configuration": {
       "properties": {
-        "justAntlr.useBuildCompileCache":{
-          "type":"boolean",
-          "default":"true",
+        "justAntlr.useBuildCompileCache": {
+          "type": "boolean",
+          "default": "true",
           "description": "whether to use compilation to build cache"
+        },
+        "justAntlr.rule": {
+          "type": "string",
+          "default": "",
+          "description": "grammar rule"
+        },
+        "justAntlr.g4": {
+          "type": "string",
+          "default": "",
+          "description": "grammar file"
+        },
+        "justAntlr.file": {
+          "type": "string",
+          "default": "",
+          "description": "grammar parse file"
         }
       }
     },
     "languages": [
       {
-          "id": "justAntlr",
-          "extensions": [
-              ".g",
-              ".g4"
-          ],
-          "firstLine": "^(lexer|parser)?\\s*grammar\\s*\\w+\\s*;"
+        "id": "justAntlr",
+        "extensions": [
+          ".g",
+          ".g4"
+        ],
+        "firstLine": "^(lexer|parser)?\\s*grammar\\s*\\w+\\s*;"
       }
     ],
     "commands": [
+      {
+        "command": "justAntlr.showGUI",
+        "title": "justAntlr: show grammar parse gui"
+      },
+      {
+        "command": "justAntlr.setParseFile",
+        "title": "justAntlr: setParseFile"
+      },
+      {
+        "command": "justAntlr.setGrammar4File",
+        "title": "justAntlr: setGrammar4File"
+      },
       {
         "command": "justAntlr.build",
         "title": "justAntlr: build"
@@ -57,15 +84,15 @@
     "menus": {
       "editor/context": [
         {
-            "when": "editorHasSelection",
-            "command": "justAntlr.genAST",
-            "group": "justAntlr@1"
+          "when": "editorHasSelection",
+          "command": "justAntlr.genAST",
+          "group": "justAntlr@1"
         },
         {
           "when": "editorHasSelection",
           "command": "justAntlr.inputInteractive",
           "group": "justAntlr@1"
-      }
+        }
       ]
     }
   },

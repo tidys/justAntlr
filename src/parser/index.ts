@@ -7,14 +7,17 @@ import { ensureDirSync, emptyDirSync } from 'fs-extra';
 import { getActiveEditorDir, getActiveEditorPath } from "../util/fs";
 import { BuildInfo, TargetLang } from "../buildInput";
 import { generateAntlrProject, compileBuilt, getAntlrJarPath } from "../build";
-import { launchTerminal } from "../util/terminal";
+import { TerminalResult, decodeTerminalOutput, launchTerminal } from "../util/terminal";
 import { openInteractWebView } from "../webview";
 import { join } from "path";
 import { parseToken } from "./token";
-import { log } from "../util/log";
+import { Log, log } from "../util/log";
 import { homedir } from "os";
+import { config } from "../util/config";
+import { execSync } from "node:child_process";
 
 export async function parse(context: vscode.ExtensionContext) {
+  log.clean();
   const { error, text } = getSelectText();
   if (error) {
     vscode.window.showErrorMessage(error);
@@ -32,11 +35,10 @@ export async function parse(context: vscode.ExtensionContext) {
     vscode.window.showWarningMessage("not selected file");
     return;
   }
-  await buildAndCompile(parseConfig, context)
-    // Error appears in the case of inaccurate grammar though the project generated is able to be compiled.
-    .finally(async() => {
-      await showGuiTree(parseConfig, context);
-    });
+  const b = await buildAndCompile(parseConfig, context);
+  if (b) {
+    await showGuiTree(parseConfig, context);
+  }
 }
 
 export async function interact(context: vscode.ExtensionContext) {
@@ -63,7 +65,7 @@ export async function interact(context: vscode.ExtensionContext) {
       this.saveText();
       const terminalInfo = getTokenCommand(this, context);
       const result = await launchTerminal(terminalInfo.command, terminalInfo.args, terminalInfo.cwd);
-      const tokenInfos = parseToken(result);
+      const tokenInfos = parseToken(result.message);
       return tokenInfos;
     },
     async getAstTree(text: string) {
@@ -110,16 +112,21 @@ async function getFileParsed() {
  * @param parseConfig 
  * @param context 
  */
-async function buildAndCompile(parseConfig: ParserInfo | InteractInfo, context: vscode.ExtensionContext) {
+export async function buildAndCompile(parseConfig: ParserInfo | InteractInfo, context: vscode.ExtensionContext): Promise<boolean> {
   const grammarName = getGrammarName(parseConfig.g4File);
   if (isCompile(grammarName)) {
-    return;
+    return true;
   }
-  await buildForParsing(parseConfig.g4File, grammarName, context)
-    .finally(async () => {
-      const compilePath = path.join(getGenDir(), grammarName);
-      await compileBuilt(compilePath, context);
-    });
+  let result = await buildForParsing(parseConfig.g4File, grammarName, context);
+  if (result.error) {
+    return false;
+  }
+  const compilePath = path.join(getGenDir(), grammarName);
+  result = await compileBuilt(compilePath, context);
+  if (result.error) {
+    return false;
+  }
+  return true;
 }
 
 function getGrammarName(filePath: string) {
@@ -139,8 +146,7 @@ function getGrammarName(filePath: string) {
   return splitArr[0];
 }
 function isCompile(grammarName: string) {
-  const config = vscode.workspace.getConfiguration("justAntlr");
-  const useBuildCompileCache = config.get<boolean>("useBuildCompileCache");
+  const useBuildCompileCache = config.getUseBuildCompileCache();
   const compile = path.join(getGenDir(), grammarName);
   if (useBuildCompileCache) {
     return fs.existsSync(compile);
@@ -152,14 +158,14 @@ function isCompile(grammarName: string) {
   }
 }
 
-async function buildForParsing(grammarFile: string, grammarName: string, context: vscode.ExtensionContext) {
+async function buildForParsing(grammarFile: string, grammarName: string, context: vscode.ExtensionContext): Promise<TerminalResult> {
   const buildInfo: BuildInfo = {
     target: TargetLang.JAVA,
     projectName: grammarName
   };
   const genDir = getGenDir();
   ensureDirSync(genDir);
-  await generateAntlrProject(grammarFile, buildInfo, context, genDir);
+  return await generateAntlrProject(grammarFile, buildInfo, context, genDir);
 }
 
 /**
@@ -168,10 +174,29 @@ async function buildForParsing(grammarFile: string, grammarName: string, context
 function getGenDir() {
   return path.join(homedir(), '.gen');
 }
-
-async function showGuiTree(parseConfig: ParserInfo, context: vscode.ExtensionContext) {
+export async function showGuiTree(parseConfig: ParserInfo, context: vscode.ExtensionContext) {
   const { command, args, cwd } = getTreeCommand(parseConfig, context);
-  await launchTerminal(command, args, cwd);
+  const terminal = await launchTerminal(command, args, cwd, true);
+}
+export async function closeGuiTree() {
+  let pid = null;
+  if (process.platform === 'win32') {
+    const ret = execSync("tasklist /v /fo csv");
+    const lines = decodeTerminalOutput(ret).toString().split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const arr = line.split(',');
+      const windowTitle = arr[arr.length - 1];
+      if (windowTitle.indexOf("Parse Tree Inspector") !== -1) {
+        pid = arr[1];
+        break;
+      }
+    }
+  }
+  if (pid) {
+    const ret = execSync(`taskkill /F /PID ${pid}`);
+    console.log(decodeTerminalOutput(ret));
+  }
 }
 
 function getTreeCommand(parseConfig: ParserInfo, context: vscode.ExtensionContext) {

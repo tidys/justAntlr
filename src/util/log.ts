@@ -11,5 +11,8 @@ export class Log {
       this.logInstance.appendLine(log);
     }
   }
+  clean() {
+    this.logInstance?.clear();
+  }
 }
 export const log = new Log();

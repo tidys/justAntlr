@@ -4,7 +4,7 @@ import { ExtensionContext, window } from "vscode";
 import { BuildInfo, buildInput, TargetLang } from "./buildInput";
 import { InteractInfo, ParserInfo, TerminalInfo } from "./interface";
 import { getActiveEditorPath } from "./util/fs";
-import { launchTerminal } from "./util/terminal";
+import { TerminalResult, launchTerminal } from "./util/terminal";
 
 // build antlr project
 export async function build(context: ExtensionContext) {
@@ -18,9 +18,9 @@ export async function build(context: ExtensionContext) {
   }
 }
 
-export async function generateAntlrProject(grammarFile: string, buildInfo: BuildInfo, ctx: ExtensionContext, cwd?: string) {
+export async function generateAntlrProject(grammarFile: string, buildInfo: BuildInfo, ctx: ExtensionContext, cwd?: string): Promise<TerminalResult> {
   const command = getGenerateCommand(grammarFile, buildInfo, ctx);
-  await launchTerminal(command.command, command.args, cwd);
+  return await launchTerminal(command.command, command.args, cwd);
 }
 
 function getGenerateCommand(grammarFile: string, buildInfo: BuildInfo, ctx: ExtensionContext) {
@@ -58,12 +58,12 @@ function getTargetCommand(lang: string) {
   return `-Dlanguage=${lang}`;
 }
 
-export async function compileBuilt(compilePath: string, context: ExtensionContext) {
+export async function compileBuilt(compilePath: string, context: ExtensionContext): Promise<TerminalResult> {
   if (!existsSync(compilePath)) {
     throw new Error('No compile Path');
   }
   const terminalInfo = getCompileCommand(compilePath, context);
-  await launchTerminal(terminalInfo.command, terminalInfo.args);
+  return await launchTerminal(terminalInfo.command, terminalInfo.args, "");
 }
 
 function getCompileCommand(compilePath: string, context: ExtensionContext, isAllCompile: boolean = true) {
