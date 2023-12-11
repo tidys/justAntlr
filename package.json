@@ -3,7 +3,7 @@
   "publisher": "xuyanfeng",
   "displayName": "justAntlrPlus",
   "description": "A simple tool for operating antlr",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.66.0"
   },

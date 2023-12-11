@@ -74,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('justAntlr.showGUI', async () => {
     log.clean();
-    closeGuiTree();
+    await closeGuiTree();
     const g4File = config.getG4();
     if (!g4File) {
       return vscode.window.showErrorMessage('No config grammar4 file');
